@@ -1,6 +1,9 @@
+
 import streamlit as st
 import pandas as pd
 import joblib
+import os
+import gdown
 
 # -------------------------------
 # Page Configuration
@@ -12,11 +15,39 @@ st.set_page_config(
 )
 
 # -------------------------------
-# Load Saved Model Package
+# Google Drive Model Configuration
+# -------------------------------
+MODEL_PATH = "attrition_model.pkl"
+
+FILE_ID = "105AFPN_sSKZzkr6CJIifA7av4IGOh-oF"
+
+# -------------------------------
+# Download and Load Saved Model
 # -------------------------------
 @st.cache_resource
 def load_model_package():
-    return joblib.load("attrition_model.pkl")
+
+    # Download model from Google Drive
+    if not os.path.exists(MODEL_PATH):
+
+        with st.spinner("Downloading machine learning models..."):
+
+            gdown.download(
+                id=FILE_ID,
+                output=MODEL_PATH,
+                quiet=False
+            )
+
+    # Check whether model file exists
+    if not os.path.exists(MODEL_PATH):
+        st.error("Model download failed. Please check Google Drive permissions.")
+        st.stop()
+
+    # Load saved model package
+    data = joblib.load(MODEL_PATH)
+
+    return data
+
 
 data = load_model_package()
 
@@ -31,7 +62,10 @@ categorical_options = data['categorical_options']
 # Header
 # -------------------------------
 st.title("Employee Attrition Prediction System")
-st.write("Predict whether an employee is likely to leave or stay.")
+
+st.write(
+    "Predict whether an employee is likely to leave or stay."
+)
 
 st.divider()
 
@@ -47,7 +81,9 @@ selected_model_name = st.sidebar.selectbox(
 
 selected_model = deployment_models[selected_model_name]
 
-st.sidebar.success(f"Selected Model: {selected_model_name}")
+st.sidebar.success(
+    f"Selected Model: {selected_model_name}"
+)
 
 # -------------------------------
 # Employee Input Form
@@ -111,21 +147,29 @@ if predict_button:
     prediction = selected_model.predict(input_df)[0]
 
     st.divider()
+
     st.subheader("Prediction Result")
 
-    # Display prediction
+    # Display Prediction
     if prediction == "Left":
 
-        st.error("Prediction: Employee is likely to LEAVE.")
+        st.error(
+            "Prediction: Employee is likely to LEAVE."
+        )
 
     else:
 
-        st.success("Prediction: Employee is likely to STAY.")
+        st.success(
+            "Prediction: Employee is likely to STAY."
+        )
 
-    # Probability calculation
+    # -------------------------------
+    # Probability Calculation
+    # -------------------------------
     if hasattr(selected_model, "predict_proba"):
 
         probabilities = selected_model.predict_proba(input_df)[0]
+
         classes = selected_model.classes_
 
         probability_df = pd.DataFrame({
@@ -136,6 +180,7 @@ if predict_button:
         left_probability = 0
 
         if "Left" in classes:
+
             left_probability = probabilities[
                 list(classes).index("Left")
             ]
@@ -160,15 +205,20 @@ if predict_button:
             probability_df.set_index("Status")
         )
 
-        # Risk classification
+        # -------------------------------
+        # Risk Classification
+        # -------------------------------
         if left_probability >= 0.70:
+
             st.warning("High Attrition Risk")
 
         elif left_probability >= 0.40:
             st.info("Medium Attrition Risk")
 
         else:
+
             st.success("Low Attrition Risk")
 
-    st.caption(f"Model used: {selected_model_name}")
-    
+    st.caption(
+        f"Model used: {selected_model_name}"
+    )
