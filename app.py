@@ -27,30 +27,41 @@ FILE_ID = "105AFPN_sSKZzkr6CJIifA7av4IGOh-oF"
 @st.cache_resource
 def load_model_package():
 
-    # Download model from Google Drive
-    if not os.path.exists(MODEL_PATH):
+    try:
+        # Download model from Google Drive
+        if not os.path.exists(MODEL_PATH) or os.path.getsize(MODEL_PATH) == 0:
 
-        with st.spinner("Downloading machine learning models..."):
+            with st.spinner("Downloading machine learning models... Please wait."):
 
-            gdown.download(
-                id=FILE_ID,
-                output=MODEL_PATH,
-                quiet=False
-            )
+                downloaded_file = gdown.download(
+                    id=FILE_ID,
+                    output=MODEL_PATH,
+                    quiet=False
+                )
 
-    # Check whether model file exists
-    if not os.path.exists(MODEL_PATH):
-        st.error("Model download failed. Please check Google Drive permissions.")
+                if downloaded_file is None:
+                    st.error("Model download failed. Check Google Drive sharing permissions.")
+                    st.stop()
+
+        # Check model file
+        if not os.path.exists(MODEL_PATH) or os.path.getsize(MODEL_PATH) == 0:
+            st.error("Model file not found or download is incomplete.")
+            st.stop()
+
+        # Load model package
+        with st.spinner("Loading machine learning models..."):
+            data = joblib.load(MODEL_PATH)
+
+        return data
+
+    except Exception as e:
+        st.error(f"Error loading model: {e}")
         st.stop()
-
-    # Load saved model package
-    data = joblib.load(MODEL_PATH)
-
-    return data
 
 
 data = load_model_package()
 
+# Extract saved model information
 deployment_models = data['models']
 feature_columns = data['feature_columns']
 numeric_features = data['numeric_features']
@@ -213,6 +224,7 @@ if predict_button:
             st.warning("High Attrition Risk")
 
         elif left_probability >= 0.40:
+
             st.info("Medium Attrition Risk")
 
         else:
