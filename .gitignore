@@ -2,4 +2,4 @@
 .venv/
 __pycache__/
 *.pyc
-attrition_model.pkl
+employee_attrition_models.pkl
